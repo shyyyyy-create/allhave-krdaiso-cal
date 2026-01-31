@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daiso 專業購物助手</title>
+    <title>Daiso다이소 다 있어</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -19,7 +19,7 @@
     <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative">
         
         <header class="bg-red-600 text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md">
-            <h1 class="text-xl font-black tracking-tighter italic">DAISO PRO</h1>
+            <h1 class="text-xl font-black tracking-tighter italic">DAISO다이소 다 있어</h1>
             <div class="flex gap-2">
                 <button @click="exportData" class="text-xs bg-red-700 px-2 py-1 rounded">匯出</button>
                 <button @click="clearCache" class="text-xs bg-red-800 px-2 py-1 rounded">重置</button>
@@ -181,7 +181,7 @@
             </section>
 
             <section v-if="view === 'calc'" class="space-y-6">
-                <h2 class="text-xl font-black border-l-4 border-black pl-2">簡易速算器 (獨立)</h2>
+                <h2 class="text-xl font-black border-l-4 border-black pl-2">簡易速算器</h2>
                 <div class="grid grid-cols-1 gap-4">
                     <div v-for="p in priceOptions" class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border">
                         <span class="font-black text-lg text-slate-700">₩ {{p}}</span>
