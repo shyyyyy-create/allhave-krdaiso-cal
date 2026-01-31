@@ -279,7 +279,7 @@
                     categories: ['護膚品', '化妝品', '零食', '文具', '生活雜貨', '其他'],
                     priceOptions: [500, 1000, 1500, 2000, 3000, 5000],
                     levels: ['想買', '需要', '必買'],
-                    form: { id: null, name: '', category: '其他', price: 1000, img: '', level: '想買', specs: ['標準'] },
+                    form: { id: null, name: '', category: '其他', price: 1000, img: '', level: '想買', specs: [''] }, // 規格改為空白
                     products: [],
                     plans: [],
                     cart: [],
@@ -289,7 +289,6 @@
                     modalType: '',
                     modalData: { item: null, spec: '', qty: 1, targetPlanId: null },
                     historyDetail: null,
-                    // 基於圖片的退稅階梯
                     taxTable: [
                         {min: 15000, max: 29999, ref: 1000},
                         {min: 30000, max: 49999, ref: 2000},
@@ -333,25 +332,30 @@
                     else this.products.push(prod);
                     this.save();
                     this.view = 'list';
-                    this.form = { id: null, name: '', category: '其他', price: 1000, img: '', level: '想買', specs: ['標準'] };
+                    this.form = { id: null, name: '', category: '其他', price: 1000, img: '', level: '想買', specs: [''] }; // 規格重置為空白
                 },
-                editProduct(item) { this.form = JSON.parse(JSON.stringify(item)); this.view = 'reg'; },
+                editProduct(item) { 
+                    this.form = JSON.parse(JSON.stringify(item)); 
+                    if (this.form.specs.length === 0) this.form.specs = ['']; // 確保編輯時也有空白格
+                    this.view = 'reg'; 
+                },
                 openModal(type, item) {
                     if (type === 'plan' && !this.plans.length) return alert('先建立清單');
                     this.modalType = type;
-                    this.modalData = { item, spec: item.specs[0], qty: 1, targetPlanId: this.plans[0]?.id };
+                    this.modalData = { item, spec: item.specs[0] || '無', qty: 1, targetPlanId: this.plans[0]?.id };
                     this.modal = true;
                 },
                 confirmModal() {
                     const { item, spec, qty, targetPlanId } = this.modalData;
                     if (this.modalType === 'cart') this.addToCartLogic(item, spec, qty);
-                    else this.plans.find(p => p.id === targetPlanId).items.push({ id: item.id, name: item.name, spec, qty, price: item.price });
+                    else this.plans.find(p => p.id === targetPlanId).items.push({ id: item.id, name: item.name, spec: spec || '無', qty, price: item.price });
                     this.modal = false; this.save();
                 },
                 addToCartLogic(item, spec, qty) {
-                    const existing = this.cart.find(c => c.id === item.id && c.spec === spec);
+                    const finalSpec = spec || '無';
+                    const existing = this.cart.find(c => c.id === item.id && c.spec === finalSpec);
                     if (existing) existing.qty += parseInt(qty);
-                    else this.cart.push({ id: item.id, name: item.name, spec, qty: parseInt(qty), price: item.price });
+                    else this.cart.push({ id: item.id, name: item.name, spec: finalSpec, qty: parseInt(qty), price: item.price });
                 },
                 isInCart(planItem) {
                     return this.cart.some(c => c.id === planItem.id && c.spec === planItem.spec);
@@ -382,8 +386,8 @@
                 if (cache) {
                     const d = JSON.parse(cache);
                     Object.assign(this.$data, d);
-                    this.view = 'list'; // 預設進產品庫
-                    this.modal = false; // 重置模態
+                    this.view = 'list';
+                    this.modal = false;
                     this.historyDetail = null;
                 }
             }
