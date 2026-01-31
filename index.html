@@ -2,161 +2,269 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daiso다이소 다 있어</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daiso 韓國購物助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .filter-chip { transition: all 0.2s; cursor: pointer; }
+        .active-chip { background-color: #ef4444 !important; color: white !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-gray-50 pb-32">
-    <div id="app" class="max-w-md mx-auto min-h-screen relative">
-        <nav class="bg-red-600 text-white sticky top-0 z-50 flex justify-around p-3 shadow-lg">
-            <button @click="view = 'reg'" :class="{'underline font-bold': view === 'reg'}">登記</button>
-            <button @click="view = 'list'" :class="{'underline font-bold': view === 'list'}">產品庫</button>
-            <button @click="view = 'plan'" :class="{'underline font-bold': view === 'plan'}">計劃</button>
-            <button @click="view = 'cart'" :class="{'underline font-bold': view === 'cart'}">購物籃/歷史</button>
+<body class="bg-slate-50 text-slate-800">
+    <div id="app" class="max-w-md mx-auto min-h-screen pb-40 relative shadow-2xl bg-white">
+        
+        <header class="bg-red-600 text-white p-4 sticky top-0 z-50 shadow-md">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-black italic">DAISO HELPER</h1>
+                <div class="space-x-2">
+                    <button @click="exportData" class="text-xs bg-red-700 px-2 py-1 rounded">匯出</button>
+                    <button @click="clearCache" class="text-xs bg-red-800 px-2 py-1 rounded">重置</button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t flex justify-around p-2 z-[60] shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+            <button v-for="t in tabs" @click="view = t.id" :class="view === t.id ? 'text-red-600' : 'text-slate-400'" class="flex flex-col items-center">
+                <i :class="t.icon" class="text-xl"></i>
+                <span class="text-[10px] mt-1">{{t.name}}</span>
+            </button>
         </nav>
 
-        <section v-if="view === 'reg'" class="p-4">
-            <h2 class="text-xl font-bold mb-4 border-l-4 border-red-500 pl-2">產品登記</h2>
-            <div class="bg-white p-4 rounded-xl shadow-sm space-y-4">
-                <input v-model="form.name" type="text" placeholder="產品名稱" class="w-full border p-2 rounded">
-                <select v-model="form.category" class="w-full border p-2 rounded">
-                    <option v-for="c in categories" :value="c">{{c}}</option>
-                </select>
+        <main v-if="view === 'reg'" class="p-5 animate-fadeIn">
+            <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-plus-circle mr-2 text-red-500"></i>新增產品</h2>
+            <div class="space-y-4">
+                <input v-model="form.name" type="text" placeholder="產品名稱 (例如：提亮防曬霜)" class="w-full border-b-2 border-slate-100 p-3 outline-none focus:border-red-500 transition-colors">
+                
                 <div class="grid grid-cols-3 gap-2">
                     <button v-for="p in priceOptions" @click="form.price = p" 
-                        :class="form.price === p ? 'bg-red-500 text-white' : 'bg-gray-100'" class="p-2 rounded border">
-                        {{p}}
+                        :class="form.price === p ? 'bg-red-500 text-white shadow-lg' : 'bg-slate-100'" class="p-2 rounded-xl text-sm font-bold border transition-all">
+                        ₩ {{p.toLocaleString()}}
                     </button>
                 </div>
-                <input v-model="form.img" type="text" placeholder="圖片鏈結 (URL)" class="w-full border p-2 rounded text-sm">
+
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <span v-for="c in categories" @click="form.category = c" 
+                        :class="form.category === c ? 'active-chip' : 'bg-slate-100 text-slate-500'" class="filter-chip px-3 py-1 rounded-full text-xs font-medium">
+                        {{c}}
+                    </span>
+                </div>
+
                 <div class="flex gap-2">
                     <button v-for="l in levels" @click="form.level = l"
-                        :class="form.level === l ? 'bg-orange-500 text-white' : 'bg-gray-100'" class="flex-1 p-2 rounded border">
+                        :class="form.level === l ? 'bg-orange-500 text-white shadow-md' : 'bg-slate-50 border'" class="flex-1 p-2 rounded-lg text-sm transition-all">
                         {{l}}
                     </button>
                 </div>
-                <div class="border-t pt-2">
-                    <p class="text-sm text-gray-500 mb-1">規格 (無上限):</p>
-                    <div v-for="(s, idx) in form.specs" :key="idx" class="flex gap-2 mb-1">
-                        <input v-model="form.specs[idx]" class="flex-1 border p-1 rounded text-sm">
-                        <button @click="form.specs.splice(idx, 1)" class="text-red-500">✕</button>
-                    </div>
-                    <button @click="form.specs.push('')" class="text-blue-500 text-sm">+ 新增規格</button>
-                </div>
-                <button @click="saveProduct" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold">確認登記</button>
-            </div>
-        </section>
 
-        <section v-if="view === 'list'" class="p-4">
-            <div class="flex gap-2 mb-4">
-                <input v-model="search" placeholder="搜尋..." class="flex-1 border p-2 rounded">
-                <select v-model="filterCat" class="border p-2 rounded">
-                    <option value="">全分類</option>
-                    <option v-for="c in categories" :value="c">{{c}}</option>
-                </select>
-            </div>
-            <div v-for="item in filteredProducts" :key="item.id" class="bg-white p-3 rounded-lg shadow-sm mb-3 flex gap-3">
-                <img :src="item.img || 'https://via.placeholder.com/80'" class="w-20 h-20 object-cover rounded">
-                <div class="flex-1">
-                    <div class="flex justify-between">
-                        <span class="font-bold">{{item.name}}</span>
-                        <span class="text-xs bg-gray-200 px-1 rounded">{{item.level}}</span>
+                <input v-model="form.img" type="text" placeholder="圖片連結 (URL)" class="w-full text-xs bg-slate-50 p-2 rounded border border-dashed">
+                
+                <div class="bg-slate-50 p-3 rounded-xl">
+                    <p class="text-xs font-bold text-slate-500 mb-2 uppercase">產品規格</p>
+                    <div v-for="(s, idx) in form.specs" :key="idx" class="flex gap-2 mb-2">
+                        <input v-model="form.specs[idx]" placeholder="例如：100ml / 藍色" class="flex-1 text-sm p-2 rounded border shadow-sm">
+                        <button @click="form.specs.splice(idx, 1)" class="text-red-400 px-2" v-if="form.specs.length > 1">✕</button>
                     </div>
-                    <p class="text-red-600 font-bold">{{item.price}} KRW</p>
-                    <div class="mt-2 flex gap-1">
-                        <button @click="addToPlanPrompt(item)" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">+計劃</button>
-                        <button @click="addToCartPrompt(item)" class="text-xs bg-green-500 text-white px-2 py-1 rounded">+購物籃</button>
-                        <button @click="editProduct(item)" class="text-xs border px-2 py-1 rounded">編輯</button>
-                    </div>
+                    <button @click="form.specs.push('')" class="text-blue-500 text-xs font-bold mt-1">+ 新增更多規格</button>
                 </div>
-            </div>
-        </section>
 
-        <section v-if="view === 'plan'" class="p-4">
-            <button @click="createPlan" class="w-full border-2 border-dashed border-gray-400 p-2 rounded mb-4">+ 建立新計劃</button>
-            <div v-for="plan in plans" :key="plan.id" class="bg-white p-4 rounded-xl shadow mb-4">
-                <div class="flex justify-between items-center mb-2">
-                    <input v-model="plan.name" class="font-bold text-lg border-b w-2/3">
-                    <button @click="deletePlan(plan.id)" class="text-red-500 text-sm">刪除</button>
+                <button @click="saveProduct" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl active:scale-95 transition-transform mt-4">
+                    登記此產品
+                </button>
+            </div>
+        </main>
+
+        <main v-if="view === 'list'" class="p-4">
+            <div class="sticky top-[60px] bg-white pt-2 pb-4 z-40">
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
+                    <input v-model="search" placeholder="搜尋已登記產品..." class="w-full bg-slate-100 rounded-full py-2 pl-10 pr-4 outline-none focus:ring-2 ring-red-200">
                 </div>
-                <div v-for="(pi, idx) in plan.items" class="flex justify-between text-sm py-1 border-b">
-                    <span>{{pi.name}} ({{pi.spec}}) x {{pi.qty}}</span>
-                    <div class="flex gap-2">
-                        <button @click="pi.qty++">+</button>
-                        <button @click="pi.qty > 1 ? pi.qty-- : plan.items.splice(idx,1)">-</button>
-                        <button @click="movePlanToCart(plan, pi, idx)" class="text-green-600">加入購物籃</button>
-                    </div>
+                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    <button @click="filterCat = ''" :class="!filterCat ? 'active-chip' : 'bg-slate-100'" class="filter-chip whitespace-nowrap px-4 py-1 rounded-full text-xs">全部</button>
+                    <button v-for="c in categories" @click="filterCat = c" :class="filterCat === c ? 'active-chip' : 'bg-slate-100'" class="filter-chip whitespace-nowrap px-4 py-1 rounded-full text-xs">{{c}}</button>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button v-for="l in ['全部', ...levels]" @click="filterLevel = l === '全部' ? '' : l" :class="(filterLevel === l || (l==='全部' && !filterLevel)) ? 'bg-orange-500 text-white' : 'bg-slate-100'" class="px-3 py-1 rounded-md text-[10px] uppercase font-bold transition-all">
+                        {{l}}
+                    </button>
                 </div>
             </div>
-        </section>
 
-        <section v-if="view === 'cart'" class="p-4">
-            <div class="flex gap-2 mb-4">
-                <button @click="cartSubView = 'current'" :class="cartSubView === 'current' ? 'bg-red-500 text-white' : 'bg-gray-200'" class="flex-1 py-1 rounded">現時購物籃</button>
-                <button @click="cartSubView = 'history'" :class="cartSubView === 'history' ? 'bg-red-500 text-white' : 'bg-gray-200'" class="flex-1 py-1 rounded">購物歷史</button>
-            </div>
-
-            <div v-if="cartSubView === 'current'">
-                <div v-for="(ci, idx) in cart" class="bg-white p-3 rounded mb-2 flex justify-between items-center shadow-sm">
+            <div v-for="item in filteredProducts" :key="item.id" class="bg-white border rounded-2xl p-3 mb-4 flex gap-4 hover:shadow-lg transition-shadow">
+                <div class="w-24 h-24 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 relative">
+                    <img :src="item.img || 'https://via.placeholder.com/150'" class="w-full h-full object-cover">
+                    <span class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] text-center">{{item.category}}</span>
+                </div>
+                <div class="flex-1 flex flex-col justify-between">
                     <div>
-                        <p class="font-bold">{{ci.name}} <span class="text-xs text-gray-400">{{ci.spec}}</span></p>
-                        <p class="text-red-500">{{ci.price * ci.qty}} KRW</p>
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-slate-700 leading-tight">{{item.name}}</h3>
+                            <button @click="editProduct(item)" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-pen-to-square"></i></button>
+                        </div>
+                        <p class="text-red-600 font-black mt-1">₩ {{item.price.toLocaleString()}}</p>
+                    </div>
+                    
+                    <div class="flex gap-1 mt-2">
+                        <button v-for="l in levels" @click="updateLevel(item, l)" :class="item.level === l ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400'" class="text-[9px] px-1.5 py-0.5 rounded border">
+                            {{l}}
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2 mt-3">
+                        <button @click="openModal('plan', item)" class="flex-1 bg-slate-800 text-white text-xs py-2 rounded-lg font-bold hover:bg-black">+ 計劃</button>
+                        <button @click="openModal('cart', item)" class="flex-1 bg-red-600 text-white text-xs py-2 rounded-lg font-bold hover:bg-red-700">+ 購物車</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <main v-if="view === 'plan'" class="p-5">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black">我的採購計劃</h2>
+                <button @click="createPlan" class="bg-black text-white px-4 py-2 rounded-full text-xs">+ 新增清單</button>
+            </div>
+
+            <div v-for="plan in plans" :key="plan.id" class="bg-slate-50 rounded-2xl p-4 mb-6 relative border">
+                <div class="flex justify-between items-start mb-4">
+                    <input v-model="plan.name" @change="save" class="bg-transparent font-bold text-lg border-b border-slate-300 w-2/3 outline-none focus:border-red-500">
+                    <button @click="deletePlan(plan.id)" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+
+                <div v-if="plan.items.length === 0" class="text-center py-8 text-slate-400 text-xs">這份清單還是空的</div>
+                
+                <div v-for="(pi, idx) in plan.items" class="bg-white p-3 rounded-xl shadow-sm mb-2 flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-bold">{{pi.name}}</p>
+                        <p class="text-[10px] text-slate-400">{{pi.spec}} | ₩{{pi.price}}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button @click="ci.qty--" class="bg-gray-200 w-6 rounded">-</button>
-                        <span>{{ci.qty}}</span>
-                        <button @click="ci.qty++" class="bg-gray-200 w-6 rounded">+</button>
+                        <div class="flex border rounded-lg overflow-hidden scale-90">
+                            <button @click="pi.qty > 1 ? pi.qty-- : plan.items.splice(idx,1); save()" class="px-2 bg-slate-100 border-r text-sm">-</button>
+                            <span class="px-3 py-1 text-sm font-bold bg-white">{{pi.qty}}</span>
+                            <button @click="pi.qty++; save()" class="px-2 bg-slate-100 border-l text-sm">+</button>
+                        </div>
+                        <button @click="movePlanToCart(plan, pi, idx)" class="text-red-500"><i class="fa-solid fa-cart-plus"></i></button>
                     </div>
                 </div>
-                <button v-if="cart.length" @click="checkout" class="w-full bg-black text-white py-3 rounded mt-4">完成結帳並存入歷史</button>
+            </div>
+        </main>
+
+        <main v-if="view === 'cart'" class="p-5">
+            <div class="flex p-1 bg-slate-100 rounded-xl mb-6">
+                <button @click="cartSubView = 'current'" :class="cartSubView === 'current' ? 'bg-white shadow text-red-600' : 'text-slate-500'" class="flex-1 py-2 rounded-lg text-sm font-bold transition-all">現時購物籃</button>
+                <button @click="cartSubView = 'history'" :class="cartSubView === 'history' ? 'bg-white shadow text-red-600' : 'text-slate-500'" class="flex-1 py-2 rounded-lg text-sm font-bold transition-all">購物歷史</button>
             </div>
 
-            <div v-else>
-                <div v-for="h in history" :key="h.id" class="bg-white p-3 rounded mb-3 shadow-sm">
-                    <div class="flex justify-between">
-                        <input v-model="h.timestamp" class="font-bold">
-                        <button @click="deleteHistory(h.id)" class="text-red-400">刪除</button>
+            <div v-if="cartSubView === 'current'" class="animate-fadeIn">
+                <div v-if="cart.length === 0" class="text-center py-20">
+                    <i class="fa-solid fa-shopping-basket text-6xl text-slate-100 mb-4"></i>
+                    <p class="text-slate-400">購物籃空空如也</p>
+                </div>
+                
+                <div v-for="(ci, idx) in cart" class="flex items-center gap-4 bg-white border-b py-4">
+                    <div class="flex-1">
+                        <p class="font-bold text-slate-700">{{ci.name}}</p>
+                        <p class="text-xs text-slate-400">規格: {{ci.spec}}</p>
+                        <p class="text-sm font-black text-red-600">₩ {{(ci.price * ci.qty).toLocaleString()}}</p>
                     </div>
-                    <p class="text-sm text-gray-500">總額: {{h.total}} KRW</p>
+                    <div class="flex items-center border rounded-xl overflow-hidden">
+                        <button @click="ci.qty > 1 ? ci.qty-- : cart.splice(idx,1); save()" class="w-8 h-8 bg-slate-50">-</button>
+                        <input type="number" v-model.number="ci.qty" @change="save" class="w-10 text-center text-sm font-bold outline-none">
+                        <button @click="ci.qty++; save()" class="w-8 h-8 bg-slate-50">+</button>
+                    </div>
+                </div>
+
+                <button v-if="cart.length" @click="checkout" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl mt-8">
+                    確認結帳 (存入歷史)
+                </button>
+            </div>
+
+            <div v-else class="space-y-4 animate-fadeIn">
+                <div v-for="h in history" :key="h.id" class="bg-slate-50 border rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <input v-model="h.name" @change="save" class="bg-transparent font-black text-slate-700 border-b border-slate-300 outline-none focus:border-red-500">
+                        <div class="flex gap-3">
+                            <button @click="editHistory(h)" class="text-slate-400 text-xs"><i class="fa-solid fa-eye"></i></button>
+                            <button @click="deleteHistory(h.id)" class="text-red-300 text-xs"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-[10px] text-center">
+                        <div class="bg-white p-2 rounded-lg shadow-sm">
+                            <p class="text-slate-400">總金額</p>
+                            <p class="font-bold">₩{{h.total.toLocaleString()}}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg shadow-sm">
+                            <p class="text-green-500 font-bold">退稅額</p>
+                            <p class="font-bold">-₩{{h.refund.toLocaleString()}}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg shadow-sm border border-red-100">
+                            <p class="text-red-500 font-bold">實付</p>
+                            <p class="font-bold text-red-600">₩{{(h.total - h.refund).toLocaleString()}}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <section class="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 pointer-events-none">
+            <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center pointer-events-auto border-t-4 border-red-500">
+                <div>
+                    <p class="text-[10px] text-slate-400 uppercase font-black">Total Price</p>
+                    <p class="text-lg font-black tracking-tighter">₩ {{totalAmount.toLocaleString()}}</p>
+                </div>
+                <div class="w-px h-8 bg-slate-700 mx-2"></div>
+                <div class="text-center">
+                    <p class="text-[10px] text-green-400 uppercase font-black">Tax Refund</p>
+                    <p class="text-lg font-black text-green-400">-₩ {{taxRefund.toLocaleString()}}</p>
+                </div>
+                <div class="w-px h-8 bg-slate-700 mx-2"></div>
+                <div class="text-right">
+                    <p class="text-[10px] text-red-400 uppercase font-black">Net Pay</p>
+                    <p class="text-xl font-black text-red-500">₩ {{ (totalAmount - taxRefund).toLocaleString() }}</p>
                 </div>
             </div>
         </section>
 
-        <div class="p-4 flex gap-2">
-            <button @click="exportData" class="flex-1 bg-gray-800 text-white text-xs py-2 rounded">匯出 JSON</button>
-            <button @click="clearCache" class="flex-1 bg-gray-400 text-white text-xs py-2 rounded">清除緩存</button>
-        </div>
+        <div v-if="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-4">
+            <div class="bg-white w-full max-w-md rounded-t-3xl p-6 animate-slideUp">
+                <div class="w-12 h-1 bg-slate-200 mx-auto rounded-full mb-6"></div>
+                <h3 class="text-lg font-black mb-4">加入到 {{modalType === 'cart' ? '購物籃' : '計劃清單'}}</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 mb-2">選擇規格</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="s in modalData.item.specs" @click="modalData.spec = s" 
+                                :class="modalData.spec === s ? 'active-chip shadow-md' : 'bg-slate-100'" class="px-4 py-2 rounded-xl text-sm transition-all border">
+                                {{s}}
+                            </button>
+                        </div>
+                    </div>
 
-        <div class="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-red-500 p-4 shadow-2xl flex justify-between items-center max-w-md mx-auto">
-            <div>
-                <p class="text-xs text-gray-500 uppercase tracking-widest">Grand Total</p>
-                <p class="text-xl font-black">{{totalAmount.toLocaleString()}} <span class="text-sm">KRW</span></p>
-            </div>
-            <div class="text-right">
-                <p class="text-xs text-green-600 font-bold">退稅: -{{taxRefund.toLocaleString()}}</p>
-                <p class="text-sm font-bold text-red-600">實付: {{ (totalAmount - taxRefund).toLocaleString() }}</p>
-            </div>
-        </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 mb-2">購買數量</p>
+                        <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-xl justify-center">
+                            <button @click="modalData.qty > 1 ? modalData.qty-- : null" class="w-10 h-10 bg-white rounded-lg shadow-sm font-bold">-</button>
+                            <span class="text-xl font-black px-6">{{modalData.qty}}</span>
+                            <button @click="modalData.qty++" class="w-10 h-10 bg-white rounded-lg shadow-sm font-bold">+</button>
+                        </div>
+                    </div>
 
-        <div v-if="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-[100]">
-            <div class="bg-white w-full rounded-xl p-4">
-                <h3 class="font-bold mb-2">加入到 {{modalType === 'cart' ? '購物籃' : '計劃'}}</h3>
-                <label class="text-sm">規格：</label>
-                <select v-model="modalData.spec" class="w-full border p-2 mb-2">
-                    <option v-for="s in modalData.item.specs" :value="s">{{s}}</option>
-                </select>
-                <label class="text-sm">數量：</label>
-                <input type="number" v-model="modalData.qty" class="w-full border p-2 mb-4">
-                <div v-if="modalType === 'plan'" class="mb-4">
-                    <label class="text-sm">選擇計劃：</label>
-                    <select v-model="modalData.targetPlanId" class="w-full border p-2">
-                        <option v-for="p in plans" :value="p.id">{{p.name}}</option>
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button @click="modal = false" class="flex-1 bg-gray-200 py-2 rounded">取消</button>
-                    <button @click="confirmModal" class="flex-1 bg-red-500 text-white py-2 rounded">確認</button>
+                    <div v-if="modalType === 'plan'">
+                        <p class="text-xs font-bold text-slate-400 mb-2">目標清單</p>
+                        <select v-model="modalData.targetPlanId" class="w-full p-3 bg-slate-50 rounded-xl outline-none border">
+                            <option v-for="p in plans" :value="p.id">{{p.name}}</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button @click="modal = false" class="flex-1 py-4 text-slate-400 font-bold">取消</button>
+                        <button @click="confirmModal" class="flex-2 bg-red-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg">確認加入</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -172,6 +280,13 @@
                     cartSubView: 'current',
                     search: '',
                     filterCat: '',
+                    filterLevel: '',
+                    tabs: [
+                        { id: 'reg', name: '產品登記', icon: 'fa-solid fa-pen-nib' },
+                        { id: 'list', name: '產品庫', icon: 'fa-solid fa-list-ul' },
+                        { id: 'plan', name: '計劃', icon: 'fa-solid fa-clipboard-check' },
+                        { id: 'cart', name: '購物籃', icon: 'fa-solid fa-cart-shopping' }
+                    ],
                     categories: ['護膚品', '化妝品', '零食', '文具', '生活雜貨', '其他'],
                     priceOptions: [500, 1000, 1500, 2000, 3000, 5000],
                     levels: ['想買', '需要', '必買'],
@@ -183,7 +298,7 @@
                     modal: false,
                     modalType: '',
                     modalData: { item: null, spec: '', qty: 1, targetPlanId: null },
-                    // 退稅表數據 (簡化對應圖片)
+                    // 根據圖片實作退稅表階梯
                     taxTable: [
                         {min: 15000, max: 29999, ref: 1000},
                         {min: 30000, max: 49999, ref: 2000},
@@ -194,16 +309,16 @@
                         {min: 150000, max: 174999, ref: 9000},
                         {min: 175000, max: 199999, ref: 10000},
                         {min: 200000, max: 224999, ref: 12000}
-                        // ... 程式中會用邏輯模擬其餘部分或完整手打
                     ]
                 }
             },
             computed: {
                 filteredProducts() {
                     return this.products.filter(p => {
-                        const mSearch = p.name.includes(this.search);
+                        const mSearch = p.name.toLowerCase().includes(this.search.toLowerCase());
                         const mCat = this.filterCat ? p.category === this.filterCat : true;
-                        return mSearch && mCat;
+                        const mLevel = this.filterLevel ? p.level === this.filterLevel : true;
+                        return mSearch && mCat && mLevel;
                     });
                 },
                 totalAmount() {
@@ -212,34 +327,35 @@
                 taxRefund() {
                     const amt = this.totalAmount;
                     if (amt < 15000) return 0;
-                    // 模擬圖片中的退稅階梯
                     const match = this.taxTable.find(t => amt >= t.min && amt <= t.max);
                     if (match) return match.ref;
-                    // 超過表定範圍的估算 (約 6-7%)
-                    return Math.floor(amt * 0.065);
+                    // 超過表格的部分：圖片顯示 200萬以上約 7-8%，這裡用 6.5% 估算
+                    return Math.floor(amt * 0.065 / 500) * 500;
                 }
             },
             methods: {
                 saveProduct() {
-                    const newProd = { ...this.form, id: Date.now() };
-                    this.products.push(newProd);
+                    if(!this.form.name) return alert('請輸入產品名稱');
+                    const newProd = { ...this.form, id: Date.now(), specs: [...this.form.specs.filter(s => s)] };
+                    const existingIdx = this.products.findIndex(p => p.id === this.form.id);
+                    if (existingIdx > -1) this.products[existingIdx] = newProd;
+                    else this.products.push(newProd);
                     this.save();
-                    alert('登記成功！');
                     this.view = 'list';
+                    this.form = { name: '', category: '其他', price: 1000, img: '', level: '想買', specs: ['標準'] };
+                },
+                updateLevel(item, level) {
+                    item.level = level;
+                    this.save();
                 },
                 editProduct(item) {
-                    this.form = { ...item };
+                    this.form = JSON.parse(JSON.stringify(item));
                     this.view = 'reg';
                 },
-                addToPlanPrompt(item) {
-                    if (this.plans.length === 0) { alert('請先在計劃頁建立一個清單'); return; }
-                    this.modalType = 'plan';
-                    this.modalData = { item, spec: item.specs[0], qty: 1, targetPlanId: this.plans[0].id };
-                    this.modal = true;
-                },
-                addToCartPrompt(item) {
-                    this.modalType = 'cart';
-                    this.modalData = { item, spec: item.specs[0], qty: 1 };
+                openModal(type, item) {
+                    if (type === 'plan' && this.plans.length === 0) return alert('請先建立清單');
+                    this.modalType = type;
+                    this.modalData = { item, spec: item.specs[0], qty: 1, targetPlanId: this.plans[0]?.id };
                     this.modal = true;
                 },
                 confirmModal() {
@@ -254,13 +370,9 @@
                     this.save();
                 },
                 addToCartLogic(item, spec, qty) {
-                    // 合併邏輯：同 ID 且 同規格
                     const existing = this.cart.find(c => c.id === item.id && c.spec === spec);
-                    if (existing) {
-                        existing.qty += parseInt(qty);
-                    } else {
-                        this.cart.push({ id: item.id, name: item.name, spec, qty: parseInt(qty), price: item.price });
-                    }
+                    if (existing) existing.qty += parseInt(qty);
+                    else this.cart.push({ id: item.id, name: item.name, spec, qty: parseInt(qty), price: item.price });
                 },
                 movePlanToCart(plan, pi, idx) {
                     this.addToCartLogic(pi, pi.spec, pi.qty);
@@ -268,32 +380,34 @@
                     this.save();
                 },
                 createPlan() {
-                    const name = prompt('輸入清單名稱', '購物清單 ' + (this.plans.length + 1));
+                    const name = prompt('輸入清單名稱', '購物計劃 ' + (this.plans.length + 1));
                     if (name) this.plans.push({ id: Date.now(), name, items: [] });
                     this.save();
                 },
                 deletePlan(id) {
-                    this.plans = this.plans.filter(p => p.id !== id);
+                    if(confirm('刪除清單？')) this.plans = this.plans.filter(p => p.id !== id);
                     this.save();
                 },
                 checkout() {
                     const record = {
                         id: Date.now(),
-                        timestamp: new Date().toLocaleString(),
+                        name: '購物紀錄 ' + (this.history.length + 1),
+                        date: new Date().toLocaleString(),
                         total: this.totalAmount,
-                        items: [...this.cart]
+                        refund: this.taxRefund,
+                        items: JSON.parse(JSON.stringify(this.cart))
                     };
                     this.history.unshift(record);
                     this.cart = [];
                     this.save();
-                    alert('結帳成功，已存入歷史！');
+                    this.cartSubView = 'history';
                 },
                 deleteHistory(id) {
                     this.history = this.history.filter(h => h.id !== id);
                     this.save();
                 },
                 save() {
-                    localStorage.setItem('daiso_data', JSON.stringify({
+                    localStorage.setItem('daiso_final_data', JSON.stringify({
                         products: this.products,
                         plans: this.plans,
                         cart: this.cart,
@@ -301,21 +415,22 @@
                     }));
                 },
                 exportData() {
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localStorage.getItem('daiso_data')));
-                    const downloadAnchorNode = document.createElement('a');
-                    downloadAnchorNode.setAttribute("href", dataStr);
-                    downloadAnchorNode.setAttribute("download", "daiso_backup.json");
-                    downloadAnchorNode.click();
+                    const blob = new Blob([JSON.stringify(this.$data)], {type: "application/json"});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "daiso_backup.json";
+                    a.click();
                 },
                 clearCache() {
-                    if (confirm('確定清除所有數據？')) {
+                    if (confirm('警告：這將清除所有數據！')) {
                         localStorage.clear();
                         location.reload();
                     }
                 }
             },
             mounted() {
-                const cache = localStorage.getItem('daiso_data');
+                const cache = localStorage.getItem('daiso_final_data');
                 if (cache) {
                     const d = JSON.parse(cache);
                     this.products = d.products || [];
@@ -326,5 +441,13 @@
             }
         }).mount('#app');
     </script>
+
+    <style>
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
 </body>
 </html>
