@@ -2,8 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <!-- 修改了 viewport 的設置，避免 Safari WebView 問題 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Daiso 專業購物助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -14,12 +13,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .safe-area-bottom { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
         [v-cloak] { display: none; }
-
-        /* 添加焦點樣式 */
-        input:focus, textarea:focus {
-            outline: 2px solid #ef4444;
-            border-color: #ef4444;
-        }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -43,8 +36,7 @@
         <div class="p-4 safe-area-bottom">
             <section v-if="view === 'reg'" class="space-y-4">
                 <h2 class="text-lg font-bold border-l-4 border-red-500 pl-2">產品登記</h2>
-                <!-- 修改了 input 標籤，添加了焦點樣式 -->
-                <input v-model="form.name" type="text" placeholder="輸入產品名稱" class="w-full border-b-2 p-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500">
+                <input v-model="form.name" type="text" placeholder="輸入產品名稱" class="w-full border-b-2 p-3 outline-none focus:border-red-500">
                 
                 <p class="text-xs font-bold text-gray-400">選擇金額 (KRW)</p>
                 <div class="grid grid-cols-3 gap-2">
@@ -109,4 +101,297 @@
                             </button>
                         </div>
                         <div class="flex gap-2 mt-2">
-                            <button @click="openModal('plan', item)" class="flex-1 bg-slate-800 text-white
+                            <button @click="openModal('plan', item)" class="flex-1 bg-slate-800 text-white text-[10px] py-1.5 rounded-lg font-bold">加到計劃</button>
+                            <button @click="openModal('cart', item)" class="flex-1 bg-red-600 text-white text-[10px] py-1.5 rounded-lg font-bold">加到購物車</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="view === 'plan'" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-black">採購計劃</h2>
+                    <button @click="createPlan" class="bg-black text-white px-3 py-1 rounded-full text-xs">+ 新清單</button>
+                </div>
+
+                <div v-for="plan in plans" :key="plan.id" class="bg-gray-50 rounded-2xl p-4 border relative">
+                    <div class="flex justify-between mb-4">
+                        <input v-model="plan.name" @change="save" class="bg-transparent font-bold border-b border-gray-300 outline-none focus:border-red-500">
+                        <button @click="deletePlan(plan.id)" class="text-red-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+
+                    <div v-for="(pi, idx) in plan.items" class="bg-white p-3 rounded-xl mb-2 flex justify-between items-center shadow-sm">
+                        <div :class="isInCart(pi) ? 'text-green-600' : 'text-slate-700'">
+                            <p class="text-sm font-bold">
+                                <i v-if="isInCart(pi)" class="fa-solid fa-check-circle mr-1"></i>
+                                {{pi.name}}
+                            </p>
+                            <p class="text-[10px] opacity-70">{{pi.spec}} | ₩{{pi.price}}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex border rounded overflow-hidden">
+                                <button @click="pi.qty > 1 ? pi.qty-- : plan.items.splice(idx,1); save()" class="px-2 bg-gray-100">-</button>
+                                <span class="px-3 text-sm font-bold">{{pi.qty}}</span>
+                                <button @click="pi.qty++; save()" class="px-2 bg-gray-100">+</button>
+                            </div>
+                            <button @click="movePlanToCart(pi)" class="text-red-500"><i class="fa-solid fa-cart-plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="view === 'cart'" class="space-y-4">
+                <div class="flex p-1 bg-gray-100 rounded-xl">
+                    <button @click="cartSubView = 'current'" :class="cartSubView === 'current' ? 'bg-white shadow text-red-600' : 'text-gray-500'" class="flex-1 py-2 rounded-lg text-sm font-bold transition-all">現時購物籃</button>
+                    <button @click="cartSubView = 'history'" :class="cartSubView === 'history' ? 'bg-white shadow text-red-600' : 'text-gray-500'" class="flex-1 py-2 rounded-lg text-sm font-bold transition-all">購物歷史</button>
+                </div>
+
+                <div v-if="cartSubView === 'current'">
+                    <div v-for="(ci, idx) in cart" class="flex items-center gap-4 bg-white border-b py-3">
+                        <div class="flex-1">
+                            <p class="font-bold text-sm">{{ci.name}}</p>
+                            <p class="text-[10px] text-gray-400">規格: {{ci.spec}}</p>
+                            <p class="text-sm font-black text-red-600">₩ {{(ci.price * ci.qty).toLocaleString()}}</p>
+                        </div>
+                        <div class="flex items-center border rounded-lg">
+                            <button @click="ci.qty > 1 ? ci.qty-- : cart.splice(idx,1); save()" class="w-8 h-8 bg-gray-50">-</button>
+                            <span class="w-8 text-center text-sm font-bold">{{ci.qty}}</span>
+                            <button @click="ci.qty++; save()" class="w-8 h-8 bg-gray-50">+</button>
+                        </div>
+                    </div>
+                    <button v-if="cart.length" @click="checkout" class="w-full bg-red-600 text-white py-4 rounded-xl font-black shadow-xl mt-6">確認結帳並存入歷史</button>
+                </div>
+
+                <div v-else class="space-y-3">
+                    <div v-for="h in history" :key="h.id" class="bg-gray-50 border rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <input v-model="h.name" @change="save" class="bg-transparent font-black border-b border-gray-200 outline-none">
+                            <div class="flex gap-2">
+                                <button @click="showHistoryDetail(h)" class="text-blue-500 text-xs">詳情</button>
+                                <button @click="deleteHistory(h.id)" class="text-red-300 text-xs">✕</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1 text-[10px] text-center font-bold">
+                            <div class="bg-white p-1 rounded">總額: ₩{{h.total}}</div>
+                            <div class="bg-white p-1 rounded text-green-600">退稅: ₩{{h.refund}}</div>
+                            <div class="bg-red-50 p-1 rounded text-red-600">實付: ₩{{h.total - h.refund}}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="view === 'calc'" class="space-y-6">
+                <h2 class="text-xl font-black border-l-4 border-black pl-2">簡易速算器 (獨立)</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <div v-for="p in priceOptions" class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border">
+                        <span class="font-black text-lg text-slate-700">₩ {{p}}</span>
+                        <div class="flex items-center gap-4">
+                            <button @click="quickCalc[p] > 0 ? quickCalc[p]-- : null" class="w-10 h-10 bg-white rounded-full shadow border font-black">-</button>
+                            <span class="text-xl font-black w-6 text-center">{{quickCalc[p] || 0}}</span>
+                            <button @click="quickCalc[p] = (quickCalc[p] || 0) + 1" class="w-10 h-10 bg-red-500 text-white rounded-full shadow font-black">+</button>
+                        </div>
+                    </div>
+                </div>
+                <button @click="quickCalc = {}" class="w-full text-xs text-gray-400 py-2 italic underline text-center">清空計算機</button>
+            </section>
+        </div>
+
+        <section v-if="view !== 'reg' && view !== 'list'" class="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pointer-events-none">
+            <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center pointer-events-auto border-t-2 border-red-500">
+                <div class="flex-1 border-r border-slate-700 pr-2">
+                    <p class="text-[9px] text-slate-400 uppercase">Total</p>
+                    <p class="text-sm font-black tracking-tight">₩ {{currentTotal.toLocaleString()}}</p>
+                </div>
+                <div class="flex-1 border-r border-slate-700 px-2 text-center">
+                    <p class="text-[9px] text-green-400 uppercase">Refund</p>
+                    <p class="text-sm font-black text-green-400">-₩ {{currentRefund.toLocaleString()}}</p>
+                </div>
+                <div class="flex-1 pl-2 text-right">
+                    <p class="text-[9px] text-red-400 uppercase">Payable</p>
+                    <p class="text-base font-black text-red-500">₩ {{ (currentTotal - currentRefund).toLocaleString() }}</p>
+                </div>
+            </div>
+        </section>
+
+        <div v-if="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-4">
+            <div class="bg-white w-full rounded-3xl p-6 animate-slideUp">
+                <h3 class="font-black mb-4">加入到 {{modalType === 'cart' ? '購物籃' : '清單'}}</h3>
+                <p class="text-xs text-gray-400 mb-1">選擇規格</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button v-for="s in modalData.item.specs" @click="modalData.spec = s" :class="modalData.spec === s ? 'active-chip' : 'bg-gray-100'" class="px-4 py-2 rounded-xl text-sm border">{{s}}</button>
+                </div>
+                <p class="text-xs text-gray-400 mb-1">數量</p>
+                <div class="flex items-center gap-4 bg-gray-50 p-2 rounded-xl mb-4 justify-center">
+                    <button @click="modalData.qty > 1 ? modalData.qty-- : null" class="w-10 h-10 bg-white rounded shadow font-bold">-</button>
+                    <span class="text-lg font-black">{{modalData.qty}}</span>
+                    <button @click="modalData.qty++" class="w-10 h-10 bg-white rounded shadow font-bold">+</button>
+                </div>
+                <div v-if="modalType === 'plan'" class="mb-4">
+                    <p class="text-xs text-gray-400 mb-1">目標清單</p>
+                    <select v-model="modalData.targetPlanId" class="w-full p-2 border rounded-lg">
+                        <option v-for="p in plans" :value="p.id">{{p.name}}</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="modal = false" class="flex-1 py-3 text-gray-400 font-bold">取消</button>
+                    <button @click="confirmModal" class="flex-2 bg-red-600 text-white py-3 rounded-xl font-black">確定</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="historyDetail" class="fixed inset-0 bg-black/80 z-[110] p-6 overflow-y-auto">
+            <div class="bg-white rounded-2xl p-4">
+                <div class="flex justify-between mb-4 border-b pb-2">
+                    <h3 class="font-bold">歷史明細編輯</h3>
+                    <button @click="historyDetail = null" class="text-xl">✕</button>
+                </div>
+                <div v-for="(item, idx) in historyDetail.items" class="flex justify-between items-center py-2 border-b text-sm">
+                    <span>{{item.name}} ({{item.spec}})</span>
+                    <div class="flex gap-2 items-center">
+                        <button @click="item.qty--; updateHistoryTotal(historyDetail)" class="px-2 bg-gray-100 rounded">-</button>
+                        <span class="font-bold">{{item.qty}}</span>
+                        <button @click="item.qty++; updateHistoryTotal(historyDetail)" class="px-2 bg-gray-100 rounded">+</button>
+                    </div>
+                </div>
+                <button @click="historyDetail = null; save()" class="w-full bg-black text-white py-2 mt-4 rounded">儲存關閉</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return {
+                    view: 'reg',
+                    cartSubView: 'current',
+                    search: '',
+                    filterCat: '',
+                    filterLevel: '',
+                    tabs: [
+                        { id: 'reg', name: '登記', icon: 'fa-solid fa-plus' },
+                        { id: 'list', name: '產品庫', icon: 'fa-solid fa-store' },
+                        { id: 'plan', name: '計劃', icon: 'fa-solid fa-list-check' },
+                        { id: 'cart', name: '購物籃', icon: 'fa-solid fa-cart-shopping' },
+                        { id: 'calc', name: '速算', icon: 'fa-solid fa-calculator' }
+                    ],
+                    categories: ['護膚品', '化妝品', '零食', '文具', '生活雜貨', '其他'],
+                    priceOptions: [500, 1000, 1500, 2000, 3000, 5000],
+                    levels: ['想買', '需要', '必買'],
+                    form: { id: null, name: '', category: '其他', price: 1000, img: '', level: '想買', specs: [''] }, // 規格改為空白
+                    products: [],
+                    plans: [],
+                    cart: [],
+                    history: [],
+                    quickCalc: {},
+                    modal: false,
+                    modalType: '',
+                    modalData: { item: null, spec: '', qty: 1, targetPlanId: null },
+                    historyDetail: null,
+                    taxTable: [
+                        {min: 15000, max: 29999, ref: 1000},
+                        {min: 30000, max: 49999, ref: 2000},
+                        {min: 50000, max: 74999, ref: 3000},
+                        {min: 75000, max: 99999, ref: 5000},
+                        {min: 100000, max: 124999, ref: 7000},
+                        {min: 125000, max: 149999, ref: 8000},
+                        {min: 150000, max: 174999, ref: 9000},
+                        {min: 175000, max: 199999, ref: 10000},
+                        {min: 200000, max: 224999, ref: 12000}
+                    ]
+                }
+            },
+            computed: {
+                filteredProducts() {
+                    return this.products.filter(p => {
+                        return p.name.includes(this.search) && (!this.filterCat || p.category === this.filterCat) && (!this.filterLevel || p.level === this.filterLevel);
+                    });
+                },
+                currentTotal() {
+                    if (this.view === 'calc') {
+                        return Object.entries(this.quickCalc).reduce((sum, [price, qty]) => sum + (price * qty), 0);
+                    }
+                    return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                },
+                currentRefund() {
+                    return this.calcRefund(this.currentTotal);
+                }
+            },
+            methods: {
+                calcRefund(total) {
+                    if (total < 15000) return 0;
+                    const tier = this.taxTable.find(t => total >= t.min && total <= t.max);
+                    return tier ? tier.ref : Math.floor(total * 0.065 / 500) * 500;
+                },
+                saveProduct() {
+                    if(!this.form.name) return alert('名稱必填');
+                    const prod = { ...this.form, id: this.form.id || Date.now(), specs: [...this.form.specs.filter(s => s)] };
+                    const idx = this.products.findIndex(p => p.id === prod.id);
+                    if (idx > -1) this.products[idx] = prod;
+                    else this.products.push(prod);
+                    this.save();
+                    this.view = 'list';
+                    this.form = { id: null, name: '', category: '其他', price: 1000, img: '', level: '想買', specs: [''] }; // 規格重置為空白
+                },
+                editProduct(item) { 
+                    this.form = JSON.parse(JSON.stringify(item)); 
+                    if (this.form.specs.length === 0) this.form.specs = ['']; // 確保編輯時也有空白格
+                    this.view = 'reg'; 
+                },
+                openModal(type, item) {
+                    if (type === 'plan' && !this.plans.length) return alert('先建立清單');
+                    this.modalType = type;
+                    this.modalData = { item, spec: item.specs[0] || '無', qty: 1, targetPlanId: this.plans[0]?.id };
+                    this.modal = true;
+                },
+                confirmModal() {
+                    const { item, spec, qty, targetPlanId } = this.modalData;
+                    if (this.modalType === 'cart') this.addToCartLogic(item, spec, qty);
+                    else this.plans.find(p => p.id === targetPlanId).items.push({ id: item.id, name: item.name, spec: spec || '無', qty, price: item.price });
+                    this.modal = false; this.save();
+                },
+                addToCartLogic(item, spec, qty) {
+                    const finalSpec = spec || '無';
+                    const existing = this.cart.find(c => c.id === item.id && c.spec === finalSpec);
+                    if (existing) existing.qty += parseInt(qty);
+                    else this.cart.push({ id: item.id, name: item.name, spec: finalSpec, qty: parseInt(qty), price: item.price });
+                },
+                isInCart(planItem) {
+                    return this.cart.some(c => c.id === planItem.id && c.spec === planItem.spec);
+                },
+                movePlanToCart(pi) { this.addToCartLogic(pi, pi.spec, pi.qty); this.save(); },
+                createPlan() { const n = prompt('清單名稱'); if(n) this.plans.push({ id: Date.now(), name: n, items: [] }); this.save(); },
+                deletePlan(id) { if(confirm('刪除清單？')) this.plans = this.plans.filter(p => p.id !== id); this.save(); },
+                checkout() {
+                    const total = this.currentTotal;
+                    this.history.unshift({ id: Date.now(), name: '新紀錄', total, refund: this.calcRefund(total), items: JSON.parse(JSON.stringify(this.cart)) });
+                    this.cart = []; this.save(); this.cartSubView = 'history';
+                },
+                showHistoryDetail(h) { this.historyDetail = h; },
+                updateHistoryTotal(h) {
+                    h.total = h.items.reduce((s, i) => s + (i.price * i.qty), 0);
+                    h.refund = this.calcRefund(h.total);
+                },
+                deleteHistory(id) { this.history = this.history.filter(h => h.id !== id); this.save(); },
+                save() { localStorage.setItem('daiso_v2', JSON.stringify(this.$data)); },
+                exportData() {
+                    const blob = new Blob([JSON.stringify(this.$data)], {type: "application/json"});
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "daiso_backup.json"; a.click();
+                },
+                clearCache() { if(confirm('清除所有？')) { localStorage.clear(); location.reload(); } }
+            },
+            mounted() {
+                const cache = localStorage.getItem('daiso_v2');
+                if (cache) {
+                    const d = JSON.parse(cache);
+                    Object.assign(this.$data, d);
+                    this.view = 'list';
+                    this.modal = false;
+                    this.historyDetail = null;
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
