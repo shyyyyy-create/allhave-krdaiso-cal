@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>다이소 다 있어 - Pro</title>
+    <title>다이소 다 있어</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -16,11 +16,12 @@
         .active-chip { background-color: #ef4444 !important; color: white !important; border-color: #ef4444; }
         .sub-active-chip { background-color: #475569 !important; color: white !important; border-color: #475569; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* 增加底部安全區域，確保按鈕不被導覽列遮擋 */
         .safe-area-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
         [v-cloak] { display: none; }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        .animate-zoomIn { animation: zoomIn 0.2s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -123,7 +124,7 @@
                 </div>
 
                 <div v-for="item in filteredProducts" :key="item.id" class="bg-white border rounded-2xl p-3 flex gap-3 shadow-sm">
-                    <img :src="item.specs[0]?.img || 'https://via.placeholder.com/100'" class="w-20 h-20 object-cover rounded-xl bg-gray-100">
+                    <img @click="previewImage(item.specs[0]?.img)" :src="item.specs[0]?.img || 'https://via.placeholder.com/100'" class="w-20 h-20 object-cover rounded-xl bg-gray-100 cursor-zoom-in">
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <div>
@@ -182,7 +183,7 @@
                 </div>
                 <div v-if="cartSubView === 'current'">
                     <div v-for="(ci, idx) in cart" class="flex items-center gap-4 bg-white border-b py-3">
-                        <img :src="ci.img" class="w-12 h-12 object-cover rounded-lg bg-gray-100">
+                        <img @click="previewImage(ci.img)" :src="ci.img || 'https://via.placeholder.com/100'" class="w-12 h-12 object-cover rounded-lg bg-gray-100 cursor-zoom-in">
                         <div class="flex-1">
                             <p class="font-bold text-sm">{{ci.name}}</p>
                             <p class="text-[10px] text-gray-400">規格: {{ci.specName}}</p>
@@ -245,38 +246,52 @@
         </section>
 
         <div v-if="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-4" @click.self="modal = false">
-            <div class="bg-white w-full rounded-3xl p-6 animate-slideUp">
-                <h3 class="font-black mb-4">加入到 {{modalType === 'cart' ? '購物籃' : '清單'}}</h3>
+            <div class="bg-white w-full rounded-3xl p-6 animate-slideUp max-h-[90vh] overflow-y-auto">
+                <div class="flex gap-4 mb-6">
+                    <img @click="previewImage(modalData.selectedSpec?.img || modalData.item.specs[0]?.img)" 
+                         :src="modalData.selectedSpec?.img || modalData.item.specs[0]?.img || 'https://via.placeholder.com/100'" 
+                         class="w-24 h-24 object-cover rounded-xl shadow-md border-2 border-white -mt-10 bg-white cursor-zoom-in">
+                    <div class="flex-1">
+                        <p class="text-red-600 font-black text-xl">₩ {{modalData.item.price}}</p>
+                        <p class="text-xs text-gray-500">已選: {{modalData.selectedSpec?.name || '預設'}}</p>
+                    </div>
+                </div>
                 
-                <p class="text-xs text-gray-400 mb-2">選擇規格</p>
-                <div class="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto">
+                <p class="text-xs text-gray-400 mb-2 font-bold uppercase">規格選擇</p>
+                <div class="flex flex-wrap gap-2 mb-6">
                     <button v-for="s in modalData.item.specs" @click="modalData.selectedSpec = s" 
                         :class="modalData.selectedSpec === s ? 'active-chip' : 'bg-gray-100'" 
-                        class="px-3 py-2 rounded-xl text-xs border flex items-center gap-2">
+                        class="px-4 py-2 rounded-xl text-xs border flex items-center gap-2">
                         <img v-if="s.img" :src="s.img" class="w-4 h-4 rounded-full object-cover">
                         {{s.name || '預設'}}
                     </button>
                 </div>
 
-                <p class="text-xs text-gray-400 mb-1">數量</p>
-                <div class="flex items-center gap-4 bg-gray-50 p-2 rounded-xl mb-4 justify-center">
+                <p class="text-xs text-gray-400 mb-2 font-bold uppercase">購買數量</p>
+                <div class="flex items-center gap-4 bg-gray-50 p-2 rounded-xl mb-6 justify-center">
                     <button @click="modalData.qty > 1 ? modalData.qty-- : null" class="w-10 h-10 bg-white rounded shadow font-bold">-</button>
-                    <span class="text-lg font-black">{{modalData.qty}}</span>
+                    <span class="text-lg font-black w-8 text-center">{{modalData.qty}}</span>
                     <button @click="modalData.qty++" class="w-10 h-10 bg-white rounded shadow font-bold">+</button>
                 </div>
 
-                <div v-if="modalType === 'plan'" class="mb-4">
-                    <p class="text-xs text-gray-400 mb-1">目標清單</p>
-                    <select v-model="modalData.targetPlanId" class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
+                <div v-if="modalType === 'plan'" class="mb-6">
+                    <p class="text-xs text-gray-400 mb-2 font-bold uppercase">目標清單</p>
+                    <select v-model="modalData.targetPlanId" class="w-full p-3 border rounded-xl bg-gray-50 text-sm outline-none">
                         <option v-for="p in plans" :value="p.id">{{p.name}}</option>
                     </select>
                 </div>
 
-                <div class="flex gap-2">
-                    <button @click="modal = false" class="flex-1 py-3 text-gray-400 font-bold">取消</button>
-                    <button @click="confirmModal" class="flex-[2] bg-red-600 text-white py-3 rounded-xl font-black">確定加入</button>
+                <div class="flex gap-3">
+                    <button @click="modal = false" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
+                    <button @click="confirmModal" class="flex-[2] bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-red-200">確定加入</button>
                 </div>
             </div>
+        </div>
+
+        <div v-if="imgPreviewUrl" class="fixed inset-0 bg-black z-[200] flex items-center justify-center p-4" @click="imgPreviewUrl = null">
+            <img :src="imgPreviewUrl" class="max-w-full max-h-full object-contain animate-zoomIn">
+            <div class="absolute top-6 right-6 text-white text-2xl"><i class="fa-solid fa-xmark"></i></div>
+            <p class="absolute bottom-10 text-white/50 text-xs">點擊任何地方關閉預覽</p>
         </div>
 
         <div v-if="historyDetail" class="fixed inset-0 bg-black/80 z-[110] p-6 overflow-y-auto">
@@ -323,7 +338,6 @@
                     subCategories: ['Base', 'Eyes', 'Lip'],
                     priceOptions: [500, 1000, 1500, 2000, 3000, 5000],
                     levels: ['想買', '需要', '必買'],
-                    // 初始 form 結構升級
                     form: { 
                         id: null, name: '', category: '其他', subCategory: '', 
                         price: 1000, level: '想買', 
@@ -337,6 +351,7 @@
                     modal: false,
                     modalType: '',
                     modalData: { item: null, selectedSpec: null, qty: 1, targetPlanId: null },
+                    imgPreviewUrl: null, // 用於全螢幕預覽
                     historyDetail: null,
                     taxTable: [
                         {min: 15000, max: 29999, ref: 1000}, {min: 30000, max: 49999, ref: 2000},
@@ -364,6 +379,9 @@
                 currentRefund() { return this.calcRefund(this.currentTotal); }
             },
             methods: {
+                previewImage(url) {
+                    if (url) this.imgPreviewUrl = url;
+                },
                 calcRefund(total) {
                     if (total < 15000) return 0;
                     const tier = this.taxTable.find(t => total >= t.min && total <= t.max);
@@ -372,21 +390,12 @@
                 saveProduct() {
                     if(!this.form.name) return alert('名稱必填');
                     if(this.form.category !== '化妝品') this.form.subCategory = '';
-                    
-                    // 清理空規格
                     const validSpecs = this.form.specs.filter(s => s.name.trim() !== '');
                     if (validSpecs.length === 0) validSpecs.push({name: '預設', img: ''});
-
-                    const prod = { 
-                        ...this.form, 
-                        id: this.form.id || Date.now(), 
-                        specs: JSON.parse(JSON.stringify(validSpecs)) 
-                    };
-
+                    const prod = { ...this.form, id: this.form.id || Date.now(), specs: JSON.parse(JSON.stringify(validSpecs)) };
                     const idx = this.products.findIndex(p => p.id === prod.id);
                     if (idx > -1) this.products[idx] = prod;
                     else this.products.push(prod);
-                    
                     this.save();
                     this.view = 'list';
                     this.resetForm();
@@ -394,11 +403,7 @@
                 resetForm() {
                     this.form = { id: null, name: '', category: '其他', subCategory: '', price: 1000, level: '想買', specs: [{name: '', img: ''}] };
                 },
-                editProduct(item) { 
-                    this.form = JSON.parse(JSON.stringify(item)); 
-                    this.view = 'reg'; 
-                    window.scrollTo(0,0);
-                },
+                editProduct(item) { this.form = JSON.parse(JSON.stringify(item)); this.view = 'reg'; window.scrollTo(0,0); },
                 openModal(type, item) {
                     if (type === 'plan' && !this.plans.length) {
                         const n = prompt('尚未有清單，請輸入新清單名稱:');
@@ -406,12 +411,7 @@
                         this.plans.push({ id: Date.now(), name: n, items: [] });
                     }
                     this.modalType = type;
-                    this.modalData = { 
-                        item, 
-                        selectedSpec: item.specs[0], 
-                        qty: 1, 
-                        targetPlanId: this.plans[0]?.id 
-                    };
+                    this.modalData = { item, selectedSpec: item.specs[0], qty: 1, targetPlanId: this.plans[0]?.id };
                     this.modal = true;
                 },
                 confirmModal() {
@@ -420,49 +420,22 @@
                         this.addToCartLogic(item, selectedSpec, qty);
                     } else {
                         const target = this.plans.find(p => p.id === targetPlanId);
-                        target.items.push({ 
-                            id: item.id, 
-                            name: item.name, 
-                            specName: selectedSpec.name, 
-                            img: selectedSpec.img,
-                            qty, 
-                            price: item.price 
-                        });
+                        target.items.push({ id: item.id, name: item.name, specName: selectedSpec.name, img: selectedSpec.img, qty, price: item.price });
                     }
-                    this.modal = false; 
-                    this.save();
+                    this.modal = false; this.save();
                 },
                 addToCartLogic(item, spec, qty) {
                     const existing = this.cart.find(c => c.id === item.id && c.specName === spec.name);
-                    if (existing) {
-                        existing.qty += parseInt(qty);
-                    } else {
-                        this.cart.push({ 
-                            id: item.id, 
-                            name: item.name, 
-                            specName: spec.name, 
-                            img: spec.img,
-                            qty: parseInt(qty), 
-                            price: item.price 
-                        });
-                    }
+                    if (existing) { existing.qty += parseInt(qty); } 
+                    else { this.cart.push({ id: item.id, name: item.name, specName: spec.name, img: spec.img, qty: parseInt(qty), price: item.price }); }
                 },
                 isInCart(planItem) { return this.cart.some(c => c.id === planItem.id && c.specName === planItem.specName); },
-                movePlanToCart(pi) { 
-                    this.addToCartLogic({id: pi.id, name: pi.name, price: pi.price}, {name: pi.specName, img: pi.img}, pi.qty); 
-                    this.save(); 
-                },
+                movePlanToCart(pi) { this.addToCartLogic({id: pi.id, name: pi.name, price: pi.price}, {name: pi.specName, img: pi.img}, pi.qty); this.save(); },
                 createPlan() { const n = prompt('清單名稱'); if(n) this.plans.push({ id: Date.now(), name: n, items: [] }); this.save(); },
                 deletePlan(id) { if(confirm('刪除清單？')) this.plans = this.plans.filter(p => p.id !== id); this.save(); },
                 checkout() {
                     const total = this.currentTotal;
-                    this.history.unshift({ 
-                        id: Date.now(), 
-                        name: '購物紀錄 ' + new Date().toLocaleDateString(), 
-                        total, 
-                        refund: this.calcRefund(total), 
-                        items: JSON.parse(JSON.stringify(this.cart)) 
-                    });
+                    this.history.unshift({ id: Date.now(), name: '購物紀錄 ' + new Date().toLocaleDateString(), total, refund: this.calcRefund(total), items: JSON.parse(JSON.stringify(this.cart)) });
                     this.cart = []; this.save(); this.cartSubView = 'history';
                 },
                 showHistoryDetail(h) { this.historyDetail = h; },
