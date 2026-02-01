@@ -16,8 +16,10 @@
         .active-chip { background-color: #ef4444 !important; color: white !important; border-color: #ef4444; }
         .sub-active-chip { background-color: #475569 !important; color: white !important; border-color: #475569; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* 增加底部緩衝空間，確保內容不被固定欄位遮擋 */
-        .safe-area-bottom { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }
+        
+        /* 修改重點：增加足夠的底部推擠空間 (240px 涵蓋了導覽列 + 總計欄) */
+        .safe-area-bottom { padding-bottom: calc(240px + env(safe-area-inset-bottom)); }
+        
         [v-cloak] { display: none; }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
         .animate-zoomIn { animation: zoomIn 0.2s ease-out; }
@@ -231,7 +233,7 @@
             </section>
         </div>
 
-        <section v-if="view !== 'reg' && view !== 'list'" class="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pointer-events-none">
+        <section v-if="view !== 'reg' && view !== 'list'" class="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pointer-events-none z-[55]">
             <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center pointer-events-auto border-t-2 border-red-500">
                 <div class="flex-1 border-r border-slate-700 pr-2">
                     <p class="text-[9px] text-slate-400 uppercase">Total</p>
@@ -463,7 +465,6 @@
                     reader.onload = (e) => {
                         try {
                             const importedData = JSON.parse(e.target.result);
-                            // 只合併核心數據以確保穩定
                             if (importedData.products) this.products = importedData.products;
                             if (importedData.plans) this.plans = importedData.plans;
                             if (importedData.cart) this.cart = importedData.cart;
@@ -482,7 +483,6 @@
                 const cache = localStorage.getItem('daiso_v2_pro');
                 if (cache) {
                     const d = JSON.parse(cache);
-                    // 使用 Object.assign 同步緩存數據，但過濾掉 UI 狀態
                     const { view, modal, imgPreviewUrl, ...persistentData } = d;
                     Object.assign(this.$data, persistentData);
                     this.view = 'list';
