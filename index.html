@@ -16,7 +16,8 @@
         .active-chip { background-color: #ef4444 !important; color: white !important; border-color: #ef4444; }
         .sub-active-chip { background-color: #475569 !important; color: white !important; border-color: #475569; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .safe-area-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+        /* 優化滾動區域，確保內容不被底部導覽和總計欄遮擋 */
+        .safe-area-bottom { padding-bottom: calc(180px + env(safe-area-inset-bottom)); }
         [v-cloak] { display: none; }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
         .animate-zoomIn { animation: zoomIn 0.2s ease-out; }
@@ -30,6 +31,8 @@
         <header class="bg-red-600 text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md">
             <h1 class="text-xl font-black tracking-tighter bold italic">다이소 다 있어</h1>
             <div class="flex gap-2">
+                <input type="file" ref="fileInput" @change="handleImport" class="hidden" accept=".json">
+                <button @click="$refs.fileInput.click()" class="text-xs bg-white text-red-600 px-2 py-1 rounded font-bold">匯入</button>
                 <button @click="exportData" class="text-xs bg-red-700 px-2 py-1 rounded">匯出</button>
                 <button @click="clearCache" class="text-xs bg-red-800 px-2 py-1 rounded">重置</button>
             </div>
@@ -351,7 +354,7 @@
                     modal: false,
                     modalType: '',
                     modalData: { item: null, selectedSpec: null, qty: 1, targetPlanId: null },
-                    imgPreviewUrl: null, // 用於全螢幕預覽
+                    imgPreviewUrl: null, 
                     historyDetail: null,
                     taxTable: [
                         {min: 15000, max: 29999, ref: 1000}, {min: 30000, max: 49999, ref: 2000},
@@ -450,13 +453,38 @@
                     const blob = new Blob([JSON.stringify(this.$data)], {type: "application/json"});
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `daiso_backup_${new Date().getTime()}.json`; a.click();
                 },
+                handleImport(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            // 只覆蓋需要的資料欄位，保留當前 Vue instance 的結構
+                            const keys = ['products', 'plans', 'cart', 'history', 'quickCalc'];
+                            keys.forEach(key => {
+                                if (importedData[key]) this[key] = importedData[key];
+                            });
+                            this.save();
+                            alert('匯入成功！');
+                            location.reload(); // 重新整理以確保視圖完全同步
+                        } catch (err) {
+                            alert('匯入失敗：檔案格式錯誤');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
                 clearCache() { if(confirm('將清空所有登記產品與紀錄，確定？')) { localStorage.clear(); location.reload(); } }
             },
             mounted() {
                 const cache = localStorage.getItem('daiso_v2_pro');
                 if (cache) {
                     const d = JSON.parse(cache);
-                    Object.assign(this.$data, d);
+                    // 恢復資料
+                    const keys = ['products', 'plans', 'cart', 'history', 'quickCalc'];
+                    keys.forEach(key => {
+                        if (d[key]) this[key] = d[key];
+                    });
                     this.view = 'list';
                 }
             }
