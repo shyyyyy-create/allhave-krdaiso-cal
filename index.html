@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>다이소 다 있어</title>
+    <title>다이소 다 있어 - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -16,8 +16,11 @@
         .active-chip { background-color: #ef4444 !important; color: white !important; border-color: #ef4444; }
         .sub-active-chip { background-color: #475569 !important; color: white !important; border-color: #475569; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .safe-area-bottom { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+        /* 增加底部安全區域，確保按鈕不被導覽列遮擋 */
+        .safe-area-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
         [v-cloak] { display: none; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -57,7 +60,7 @@
                     </span>
                 </div>
 
-                <div v-if="form.category === '化妝品'" class="bg-gray-100 p-3 rounded-xl animate-pulse">
+                <div v-if="form.category === '化妝品'" class="bg-gray-100 p-3 rounded-xl">
                     <p class="text-[10px] font-bold text-gray-500 mb-2">化妝品子分類</p>
                     <div class="flex gap-2">
                         <button v-for="sc in subCategories" @click="form.subCategory = sc" :class="form.subCategory === sc ? 'sub-active-chip' : 'bg-white text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold border transition-all">
@@ -73,18 +76,29 @@
                     </button>
                 </div>
 
-                <input v-model="form.img" type="text" placeholder="圖片鏈結 URL" class="w-full text-xs bg-gray-50 p-2 rounded border border-dashed">
-                
-                <div class="bg-gray-50 p-3 rounded-xl">
-                    <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">多重規格管理</p>
-                    <div v-for="(s, idx) in form.specs" :key="idx" class="flex gap-2 mb-2">
-                        <input v-model="form.specs[idx]" placeholder="規格名稱" class="flex-1 text-sm p-2 rounded border">
-                        <button @click="form.specs.splice(idx, 1)" class="text-red-400 px-2" v-if="form.specs.length > 1">✕</button>
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest flex justify-between">
+                        <span>多重規格與圖片管理</span>
+                        <span class="text-red-500">{{form.specs.length}} 個規格</span>
+                    </p>
+                    <div v-for="(s, idx) in form.specs" :key="idx" class="bg-white p-3 rounded-lg border mb-3 shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] bg-gray-200 px-2 py-0.5 rounded text-gray-600 font-bold">規格 {{idx + 1}}</span>
+                            <button @click="form.specs.splice(idx, 1)" class="text-red-400 text-xs" v-if="form.specs.length > 1">移除</button>
+                        </div>
+                        <input v-model="s.name" placeholder="規格名稱 (如: 01 珊瑚色)" class="w-full text-sm p-2 rounded border mb-2 outline-none focus:ring-1 focus:ring-red-400">
+                        <input v-model="s.img" placeholder="該規格圖片 URL (可選)" class="w-full text-[10px] p-2 rounded border bg-gray-50">
                     </div>
-                    <button @click="form.specs.push('')" class="text-blue-500 text-xs font-bold">+ 新增規格</button>
+                    <button @click="form.specs.push({name: '', img: ''})" class="w-full py-2 border-2 border-dashed border-gray-300 text-blue-500 text-xs font-bold rounded-lg hover:bg-white transition-colors">
+                        + 新增更多規格
+                    </button>
                 </div>
 
-                <button @click="saveProduct" class="w-full bg-red-600 text-white py-4 rounded-xl font-black shadow-lg">確認登記</button>
+                <div class="pt-4 pb-8">
+                    <button @click="saveProduct" class="w-full bg-red-600 text-white py-4 rounded-xl font-black shadow-lg active:scale-95 transition-transform">
+                        {{ form.id ? '更新產品資訊' : '確認登記產品' }}
+                    </button>
+                </div>
             </section>
 
             <section v-if="view === 'list'" class="space-y-4">
@@ -97,7 +111,7 @@
                     <button v-for="c in categories" @click="filterCat = c; filterSubCat = ''" :class="filterCat === c ? 'active-chip' : 'bg-gray-100'" class="filter-chip px-4 py-1 rounded-full text-xs whitespace-nowrap">{{c}}</button>
                 </div>
 
-                <div v-if="filterCat === '化妝品'" class="flex gap-2 animate-fadeIn">
+                <div v-if="filterCat === '化妝品'" class="flex gap-2 animate-fadeIn overflow-x-auto no-scrollbar">
                     <button @click="filterSubCat = ''" :class="!filterSubCat ? 'sub-active-chip' : 'bg-slate-100'" class="filter-chip px-3 py-1 rounded-lg text-[10px] font-bold">全部子項</button>
                     <button v-for="sc in subCategories" @click="filterSubCat = sc" :class="filterSubCat === sc ? 'sub-active-chip' : 'bg-slate-100'" class="filter-chip px-3 py-1 rounded-lg text-[10px] font-bold">{{sc}}</button>
                 </div>
@@ -109,14 +123,14 @@
                 </div>
 
                 <div v-for="item in filteredProducts" :key="item.id" class="bg-white border rounded-2xl p-3 flex gap-3 shadow-sm">
-                    <img :src="item.img || 'https://via.placeholder.com/100'" class="w-20 h-20 object-cover rounded-xl bg-gray-100">
+                    <img :src="item.specs[0]?.img || 'https://via.placeholder.com/100'" class="w-20 h-20 object-cover rounded-xl bg-gray-100">
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="font-bold text-sm">{{item.name}}</h3>
                                 <span v-if="item.subCategory" class="text-[9px] bg-slate-100 text-slate-500 px-1 rounded">{{item.subCategory}}</span>
                             </div>
-                            <button @click="editProduct(item)" class="text-gray-300 text-xs"><i class="fa-solid fa-edit"></i></button>
+                            <button @click="editProduct(item)" class="text-gray-300 text-xs p-1"><i class="fa-solid fa-edit"></i></button>
                         </div>
                         <p class="text-red-600 font-black">₩ {{item.price}}</p>
                         <div class="flex gap-1 mt-1">
@@ -144,8 +158,10 @@
                     </div>
                     <div v-for="(pi, idx) in plan.items" class="bg-white p-3 rounded-xl mb-2 flex justify-between items-center shadow-sm">
                         <div :class="isInCart(pi) ? 'text-green-600' : 'text-slate-700'">
-                            <p class="text-sm font-bold"><i v-if="isInCart(pi)" class="fa-solid fa-check-circle mr-1"></i>{{pi.name}}</p>
-                            <p class="text-[10px] opacity-70">{{pi.spec}} | ₩{{pi.price}}</p>
+                            <p class="text-sm font-bold flex items-center">
+                                <i v-if="isInCart(pi)" class="fa-solid fa-check-circle mr-1"></i>{{pi.name}}
+                            </p>
+                            <p class="text-[10px] opacity-70">{{pi.specName}} | ₩{{pi.price}}</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="flex border rounded overflow-hidden">
@@ -166,9 +182,10 @@
                 </div>
                 <div v-if="cartSubView === 'current'">
                     <div v-for="(ci, idx) in cart" class="flex items-center gap-4 bg-white border-b py-3">
+                        <img :src="ci.img" class="w-12 h-12 object-cover rounded-lg bg-gray-100">
                         <div class="flex-1">
                             <p class="font-bold text-sm">{{ci.name}}</p>
-                            <p class="text-[10px] text-gray-400">規格: {{ci.spec}}</p>
+                            <p class="text-[10px] text-gray-400">規格: {{ci.specName}}</p>
                             <p class="text-sm font-black text-red-600">₩ {{(ci.price * ci.qty).toLocaleString()}}</p>
                         </div>
                         <div class="flex items-center border rounded-lg">
@@ -227,41 +244,55 @@
             </div>
         </section>
 
-        <div v-if="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-4">
+        <div v-if="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-4" @click.self="modal = false">
             <div class="bg-white w-full rounded-3xl p-6 animate-slideUp">
                 <h3 class="font-black mb-4">加入到 {{modalType === 'cart' ? '購物籃' : '清單'}}</h3>
-                <p class="text-xs text-gray-400 mb-1">選擇規格</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <button v-for="s in modalData.item.specs" @click="modalData.spec = s" :class="modalData.spec === s ? 'active-chip' : 'bg-gray-100'" class="px-4 py-2 rounded-xl text-sm border">{{s}}</button>
+                
+                <p class="text-xs text-gray-400 mb-2">選擇規格</p>
+                <div class="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto">
+                    <button v-for="s in modalData.item.specs" @click="modalData.selectedSpec = s" 
+                        :class="modalData.selectedSpec === s ? 'active-chip' : 'bg-gray-100'" 
+                        class="px-3 py-2 rounded-xl text-xs border flex items-center gap-2">
+                        <img v-if="s.img" :src="s.img" class="w-4 h-4 rounded-full object-cover">
+                        {{s.name || '預設'}}
+                    </button>
                 </div>
+
                 <p class="text-xs text-gray-400 mb-1">數量</p>
                 <div class="flex items-center gap-4 bg-gray-50 p-2 rounded-xl mb-4 justify-center">
                     <button @click="modalData.qty > 1 ? modalData.qty-- : null" class="w-10 h-10 bg-white rounded shadow font-bold">-</button>
                     <span class="text-lg font-black">{{modalData.qty}}</span>
                     <button @click="modalData.qty++" class="w-10 h-10 bg-white rounded shadow font-bold">+</button>
                 </div>
+
                 <div v-if="modalType === 'plan'" class="mb-4">
                     <p class="text-xs text-gray-400 mb-1">目標清單</p>
-                    <select v-model="modalData.targetPlanId" class="w-full p-2 border rounded-lg">
+                    <select v-model="modalData.targetPlanId" class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
                         <option v-for="p in plans" :value="p.id">{{p.name}}</option>
                     </select>
                 </div>
+
                 <div class="flex gap-2">
                     <button @click="modal = false" class="flex-1 py-3 text-gray-400 font-bold">取消</button>
-                    <button @click="confirmModal" class="flex-2 bg-red-600 text-white py-3 rounded-xl font-black">確定</button>
+                    <button @click="confirmModal" class="flex-[2] bg-red-600 text-white py-3 rounded-xl font-black">確定加入</button>
                 </div>
             </div>
         </div>
 
         <div v-if="historyDetail" class="fixed inset-0 bg-black/80 z-[110] p-6 overflow-y-auto">
-            <div class="bg-white rounded-2xl p-4">
+            <div class="bg-white rounded-2xl p-4 max-w-sm mx-auto">
                 <div class="flex justify-between mb-4 border-b pb-2"><h3 class="font-bold">歷史明細編輯</h3><button @click="historyDetail = null" class="text-xl">✕</button></div>
-                <div v-for="(item, idx) in historyDetail.items" class="flex justify-between items-center py-2 border-b text-sm">
-                    <span>{{item.name}} ({{item.spec}})</span>
-                    <div class="flex gap-2 items-center">
-                        <button @click="item.qty--; updateHistoryTotal(historyDetail)" class="px-2 bg-gray-100 rounded">-</button>
-                        <span class="font-bold">{{item.qty}}</span>
-                        <button @click="item.qty++; updateHistoryTotal(historyDetail)" class="px-2 bg-gray-100 rounded">+</button>
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <div v-for="(item, idx) in historyDetail.items" class="flex justify-between items-center py-2 border-b text-sm">
+                        <div>
+                            <p class="font-bold">{{item.name}}</p>
+                            <p class="text-[10px] text-gray-400">{{item.specName}}</p>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <button @click="item.qty--; updateHistoryTotal(historyDetail)" class="px-2 bg-gray-100 rounded">-</button>
+                            <span class="font-bold w-4 text-center">{{item.qty}}</span>
+                            <button @click="item.qty++; updateHistoryTotal(historyDetail)" class="px-2 bg-gray-100 rounded">+</button>
+                        </div>
                     </div>
                 </div>
                 <button @click="historyDetail = null; save()" class="w-full bg-black text-white py-2 mt-4 rounded">儲存關閉</button>
@@ -275,12 +306,12 @@
         createApp({
             data() {
                 return {
-                    view: 'reg',
+                    view: 'list',
                     cartSubView: 'current',
                     search: '',
                     filterCat: '',
-                    filterSubCat: '', // 新增子分類過濾
-                     filterLevel: '',  // <--- 補上這一行，讓篩選器生效
+                    filterSubCat: '',
+                    filterLevel: '',
                     tabs: [
                         { id: 'reg', name: '登記', icon: 'fa-solid fa-plus' },
                         { id: 'list', name: '產品庫', icon: 'fa-solid fa-store' },
@@ -289,10 +320,15 @@
                         { id: 'calc', name: '速算', icon: 'fa-solid fa-calculator' }
                     ],
                     categories: ['護膚品', '化妝品', '零食', '文具', '生活雜貨', '其他'],
-                    subCategories: ['Base', 'Eyes', 'Lip'], // 化妝品子分類
+                    subCategories: ['Base', 'Eyes', 'Lip'],
                     priceOptions: [500, 1000, 1500, 2000, 3000, 5000],
                     levels: ['想買', '需要', '必買'],
-                    form: { id: null, name: '', category: '其他', subCategory: '', price: 1000, img: '', level: '想買', specs: [''] },
+                    // 初始 form 結構升級
+                    form: { 
+                        id: null, name: '', category: '其他', subCategory: '', 
+                        price: 1000, level: '想買', 
+                        specs: [{name: '', img: ''}] 
+                    },
                     products: [],
                     plans: [],
                     cart: [],
@@ -300,7 +336,7 @@
                     quickCalc: {},
                     modal: false,
                     modalType: '',
-                    modalData: { item: null, spec: '', qty: 1, targetPlanId: null },
+                    modalData: { item: null, selectedSpec: null, qty: 1, targetPlanId: null },
                     historyDetail: null,
                     taxTable: [
                         {min: 15000, max: 29999, ref: 1000}, {min: 30000, max: 49999, ref: 2000},
@@ -314,7 +350,7 @@
             computed: {
                 filteredProducts() {
                     return this.products.filter(p => {
-                        const matchSearch = p.name.includes(this.search);
+                        const matchSearch = p.name.toLowerCase().includes(this.search.toLowerCase());
                         const matchCat = !this.filterCat || p.category === this.filterCat;
                         const matchSubCat = !this.filterSubCat || p.subCategory === this.filterSubCat;
                         const matchLevel = !this.filterLevel || p.level === this.filterLevel;
@@ -335,69 +371,120 @@
                 },
                 saveProduct() {
                     if(!this.form.name) return alert('名稱必填');
-                    // 如果不是化妝品，清空子分類
                     if(this.form.category !== '化妝品') this.form.subCategory = '';
-                    const prod = { ...this.form, id: this.form.id || Date.now(), specs: [...this.form.specs.filter(s => s)] };
+                    
+                    // 清理空規格
+                    const validSpecs = this.form.specs.filter(s => s.name.trim() !== '');
+                    if (validSpecs.length === 0) validSpecs.push({name: '預設', img: ''});
+
+                    const prod = { 
+                        ...this.form, 
+                        id: this.form.id || Date.now(), 
+                        specs: JSON.parse(JSON.stringify(validSpecs)) 
+                    };
+
                     const idx = this.products.findIndex(p => p.id === prod.id);
                     if (idx > -1) this.products[idx] = prod;
                     else this.products.push(prod);
+                    
                     this.save();
                     this.view = 'list';
-                    this.form = { id: null, name: '', category: '其他', subCategory: '', price: 1000, img: '', level: '想買', specs: [''] };
+                    this.resetForm();
+                },
+                resetForm() {
+                    this.form = { id: null, name: '', category: '其他', subCategory: '', price: 1000, level: '想買', specs: [{name: '', img: ''}] };
                 },
                 editProduct(item) { 
                     this.form = JSON.parse(JSON.stringify(item)); 
-                    if (!this.form.specs || this.form.specs.length === 0) this.form.specs = [''];
                     this.view = 'reg'; 
+                    window.scrollTo(0,0);
                 },
                 openModal(type, item) {
-                    if (type === 'plan' && !this.plans.length) return alert('先建立清單');
+                    if (type === 'plan' && !this.plans.length) {
+                        const n = prompt('尚未有清單，請輸入新清單名稱:');
+                        if(!n) return;
+                        this.plans.push({ id: Date.now(), name: n, items: [] });
+                    }
                     this.modalType = type;
-                    this.modalData = { item, spec: item.specs[0] || '無', qty: 1, targetPlanId: this.plans[0]?.id };
+                    this.modalData = { 
+                        item, 
+                        selectedSpec: item.specs[0], 
+                        qty: 1, 
+                        targetPlanId: this.plans[0]?.id 
+                    };
                     this.modal = true;
                 },
                 confirmModal() {
-                    const { item, spec, qty, targetPlanId } = this.modalData;
-                    if (this.modalType === 'cart') this.addToCartLogic(item, spec, qty);
-                    else this.plans.find(p => p.id === targetPlanId).items.push({ id: item.id, name: item.name, spec: spec || '無', qty, price: item.price });
-                    this.modal = false; this.save();
+                    const { item, selectedSpec, qty, targetPlanId } = this.modalData;
+                    if (this.modalType === 'cart') {
+                        this.addToCartLogic(item, selectedSpec, qty);
+                    } else {
+                        const target = this.plans.find(p => p.id === targetPlanId);
+                        target.items.push({ 
+                            id: item.id, 
+                            name: item.name, 
+                            specName: selectedSpec.name, 
+                            img: selectedSpec.img,
+                            qty, 
+                            price: item.price 
+                        });
+                    }
+                    this.modal = false; 
+                    this.save();
                 },
                 addToCartLogic(item, spec, qty) {
-                    const finalSpec = spec || '無';
-                    const existing = this.cart.find(c => c.id === item.id && c.spec === finalSpec);
-                    if (existing) existing.qty += parseInt(qty);
-                    else this.cart.push({ id: item.id, name: item.name, spec: finalSpec, qty: parseInt(qty), price: item.price });
+                    const existing = this.cart.find(c => c.id === item.id && c.specName === spec.name);
+                    if (existing) {
+                        existing.qty += parseInt(qty);
+                    } else {
+                        this.cart.push({ 
+                            id: item.id, 
+                            name: item.name, 
+                            specName: spec.name, 
+                            img: spec.img,
+                            qty: parseInt(qty), 
+                            price: item.price 
+                        });
+                    }
                 },
-                isInCart(planItem) { return this.cart.some(c => c.id === planItem.id && c.spec === planItem.spec); },
-                movePlanToCart(pi) { this.addToCartLogic(pi, pi.spec, pi.qty); this.save(); },
+                isInCart(planItem) { return this.cart.some(c => c.id === planItem.id && c.specName === planItem.specName); },
+                movePlanToCart(pi) { 
+                    this.addToCartLogic({id: pi.id, name: pi.name, price: pi.price}, {name: pi.specName, img: pi.img}, pi.qty); 
+                    this.save(); 
+                },
                 createPlan() { const n = prompt('清單名稱'); if(n) this.plans.push({ id: Date.now(), name: n, items: [] }); this.save(); },
                 deletePlan(id) { if(confirm('刪除清單？')) this.plans = this.plans.filter(p => p.id !== id); this.save(); },
                 checkout() {
                     const total = this.currentTotal;
-                    this.history.unshift({ id: Date.now(), name: '新紀錄', total, refund: this.calcRefund(total), items: JSON.parse(JSON.stringify(this.cart)) });
+                    this.history.unshift({ 
+                        id: Date.now(), 
+                        name: '購物紀錄 ' + new Date().toLocaleDateString(), 
+                        total, 
+                        refund: this.calcRefund(total), 
+                        items: JSON.parse(JSON.stringify(this.cart)) 
+                    });
                     this.cart = []; this.save(); this.cartSubView = 'history';
                 },
                 showHistoryDetail(h) { this.historyDetail = h; },
                 updateHistoryTotal(h) {
                     h.total = h.items.reduce((s, i) => s + (i.price * i.qty), 0);
                     h.refund = this.calcRefund(h.total);
+                    this.save();
                 },
-                deleteHistory(id) { this.history = this.history.filter(h => h.id !== id); this.save(); },
-                save() { localStorage.setItem('daiso_v2', JSON.stringify(this.$data)); },
+                deleteHistory(id) { if(confirm('刪除歷史？')) { this.history = this.history.filter(h => h.id !== id); this.save(); } },
+                save() { localStorage.setItem('daiso_v2_pro', JSON.stringify(this.$data)); },
                 exportData() {
                     const blob = new Blob([JSON.stringify(this.$data)], {type: "application/json"});
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "daiso_backup.json"; a.click();
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `daiso_backup_${new Date().getTime()}.json`; a.click();
                 },
-                clearCache() { if(confirm('清除所有？')) { localStorage.clear(); location.reload(); } }
+                clearCache() { if(confirm('將清空所有登記產品與紀錄，確定？')) { localStorage.clear(); location.reload(); } }
             },
             mounted() {
-                const cache = localStorage.getItem('daiso_v2');
+                const cache = localStorage.getItem('daiso_v2_pro');
                 if (cache) {
                     const d = JSON.parse(cache);
                     Object.assign(this.$data, d);
                     this.view = 'list';
-                    this.modal = false;
-                    this.historyDetail = null;
                 }
             }
         }).mount('#app');
