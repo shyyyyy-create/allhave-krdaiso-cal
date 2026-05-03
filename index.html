@@ -8,58 +8,78 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f9f9fb; }
-        .tab-active { border-bottom: 3px solid #ff8a8a; color: #ff8a8a; }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8f9fa; color: #333; }
+        .tab-active { border-bottom: 3px solid #ff8a8a; color: #ff8a8a; font-weight: 700; }
+        .card-shadow { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); }
+        .shade-badge { background-color: #f3f0ff; color: #7c3aed; }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-28">
 
     <!-- Header -->
-    <header class="bg-white p-6 sticky top-0 z-50 border-b border-gray-100">
-        <h1 class="text-2xl font-bold text-center text-gray-800 tracking-tight">🇰🇷 2026 韓國購物清單</h1>
-        <div class="flex justify-around mt-4 text-sm font-medium text-gray-400">
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 p-6">
+        <h1 class="text-2xl font-bold text-center tracking-tight text-gray-800">🇰🇷 韓國購物清單 <span class="text-pink-400">2026</span></h1>
+        <div class="flex justify-around mt-5 text-sm font-medium text-gray-400">
             <button onclick="switchTab('oy')" id="tab-oy" class="pb-2 tab-active transition-all">Olive Young</button>
             <button onclick="switchTab('daiso')" id="tab-daiso" class="pb-2 transition-all">Daiso</button>
-            <button onclick="switchTab('others')" id="tab-others" class="pb-2 transition-all">其他購買</button>
+            <button onclick="switchTab('others')" id="tab-others" class="pb-2 transition-all">其他</button>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main id="list-container" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- 內容由 JS 動態生成 -->
+    <!-- List Container -->
+    <main id="list-container" class="p-4 space-y-4 max-w-2xl mx-auto">
+        <!-- JS 動態渲染 -->
     </main>
 
-    <!-- Total Stats Footer -->
-    <footer class="fixed bottom-0 left-0 w-full bg-white border-t p-4 flex justify-between items-center shadow-lg">
-        <div class="text-gray-600">
-            <p class="text-xs">總計預算 (估算)</p>
-            <p class="text-lg font-bold text-pink-500">₩ <span id="total-krw">0</span></p>
+    <!-- Footer Stats -->
+    <footer class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-gray-100 p-5 flex justify-between items-center shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50">
+        <div>
+            <p class="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Total Budget</p>
+            <p class="text-xl font-black text-gray-800">₩ <span id="total-krw">0</span></p>
         </div>
-        <button onclick="openModal()" class="bg-black text-white px-6 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
+        <button onclick="openModal()" class="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold shadow-xl active:scale-95 transition-all">
             <i class="fas fa-plus mr-2"></i> 新增項目
         </button>
     </footer>
 
-    <!-- Modal (新增項目) -->
-    <div id="modal" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl p-6">
-            <h2 class="text-xl font-bold mb-4">新增購物項目</h2>
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6">加入購物清單</h2>
             <div class="space-y-4">
-                <input type="text" id="item-name" placeholder="名稱 (e.g. 樺樹汁防曬)" class="w-full p-3 bg-gray-50 rounded-xl outline-none">
-                <div class="flex gap-2">
-                    <input type="number" id="item-price" placeholder="價格 (₩)" class="w-1/2 p-3 bg-gray-50 rounded-xl">
-                    <input type="number" id="item-qty" placeholder="數量" value="1" class="w-1/2 p-3 bg-gray-50 rounded-xl">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1">產品名稱</label>
+                    <input type="text" id="item-name" placeholder="例如：fwee 唇頰兩用布丁膏" class="w-full p-3.5 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-pink-100 transition-all">
                 </div>
-                <select id="item-category" class="w-full p-3 bg-gray-50 rounded-xl">
-                    <option value="oy">Olive Young</option>
-                    <option value="daiso">Daiso</option>
-                    <option value="others">其他</option>
-                </select>
-                <input type="text" id="item-img" placeholder="圖片連結 (URL) 或 留空" class="w-full p-3 bg-gray-50 rounded-xl">
-                <div class="flex gap-2 mt-6">
-                    <button onclick="closeModal()" class="flex-1 py-3 text-gray-500 font-medium">取消</button>
-                    <button onclick="addItem()" class="flex-1 py-3 bg-pink-400 text-white rounded-xl font-bold">確認新增</button>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1">色號 / 規格</label>
+                    <input type="text" id="item-shade" placeholder="例如：#ND04 My, #CR01" class="w-full p-3.5 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-purple-100 transition-all border border-purple-50">
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="text-xs font-bold text-gray-400 ml-1">單價 (₩)</label>
+                        <input type="number" id="item-price" placeholder="價格" class="w-full p-3.5 bg-gray-50 rounded-2xl outline-none">
+                    </div>
+                    <div class="w-24">
+                        <label class="text-xs font-bold text-gray-400 ml-1">數量</label>
+                        <input type="number" id="item-qty" value="1" class="w-full p-3.5 bg-gray-50 rounded-2xl outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1">分類</label>
+                    <select id="item-category" class="w-full p-3.5 bg-gray-50 rounded-2xl outline-none appearance-none">
+                        <option value="oy">Olive Young</option>
+                        <option value="daiso">Daiso</option>
+                        <option value="others">其他</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1">圖片連結 (可不填)</label>
+                    <input type="text" id="item-img" placeholder="https://..." class="w-full p-3.5 bg-gray-50 rounded-2xl outline-none">
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button onclick="closeModal()" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
+                    <button onclick="addItem()" class="flex-1 py-4 bg-pink-400 text-white rounded-2xl font-bold shadow-lg shadow-pink-100">確認加入</button>
                 </div>
             </div>
         </div>
@@ -67,9 +87,9 @@
 
     <script>
         let currentTab = 'oy';
-        let items = JSON.parse(localStorage.getItem('k-shopping-list')) || [
-            { id: 1, name: 'Round Lab 防曬乳', price: 25000, qty: 2, cat: 'oy', img: 'https://global.oliveyoung.com/display/page/best-seller' },
-            { id: 2, name: 'Daiso TAG 眉筆', price: 3000, qty: 1, cat: 'daiso', img: '' }
+        let items = JSON.parse(localStorage.getItem('k-shopping-list-v2')) || [
+            { id: 1, name: 'fwee 布丁膏', shade: '#ND04 My', price: 17500, qty: 1, cat: 'oy', img: '' },
+            { id: 2, name: 'Clio 氣墊粉餅', shade: '21N Linen', price: 32000, qty: 1, cat: 'oy', img: '' }
         ];
 
         function switchTab(tab) {
@@ -84,52 +104,59 @@
 
         function addItem() {
             const name = document.getElementById('item-name').value;
+            const shade = document.getElementById('item-shade').value;
             const price = document.getElementById('item-price').value || 0;
             const qty = document.getElementById('item-qty').value || 1;
             const cat = document.getElementById('item-category').value;
             const img = document.getElementById('item-img').value;
 
-            if(!name) return alert('請輸入名稱');
+            if(!name) return alert('請輸入產品名稱');
             
-            items.push({ id: Date.now(), name, price: parseInt(price), qty: parseInt(qty), cat, img });
+            items.push({ id: Date.now(), name, shade, price: parseInt(price), qty: parseInt(qty), cat, img });
             saveAndRender();
             closeModal();
-            // 重置表單
+            // Reset
             document.getElementById('item-name').value = '';
+            document.getElementById('item-shade').value = '';
             document.getElementById('item-price').value = '';
         }
 
         function deleteItem(id) {
-            items = items.filter(i => i.id !== id);
-            saveAndRender();
+            if(confirm('確定刪除嗎？')) {
+                items = items.filter(i => i.id !== id);
+                saveAndRender();
+            }
         }
 
         function saveAndRender() {
-            localStorage.setItem('k-shopping-list', JSON.stringify(items));
+            localStorage.setItem('k-shopping-list-v2', JSON.stringify(items));
             render();
         }
 
         function render() {
             const container = document.getElementById('list-container');
             const filtered = items.filter(i => i.cat === currentTab);
-            let total = 0;
-
-            container.innerHTML = filtered.map(item => {
-                total += item.price * item.qty;
-                return `
-                    <div class="bg-white p-4 rounded-2xl card-shadow border border-gray-50 flex items-center gap-4">
-                        <div class="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                            ${item.img ? `<img src="${item.img}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-300"><i class="fas fa-image"></i></div>`}
+            
+            if(filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 text-gray-300 font-medium">清單是空的，快去新增吧！</div>`;
+            } else {
+                container.innerHTML = filtered.map(item => `
+                    <div class="bg-white p-4 rounded-[24px] card-shadow border border-gray-50 flex items-center gap-4 animate-fade-in">
+                        <div class="w-20 h-20 bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 border border-gray-100">
+                            ${item.img ? `<img src="${item.img}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-200"><i class="fas fa-shopping-bag text-2xl"></i></div>`}
                         </div>
-                        <div class="flex-grow">
-                            <h3 class="font-bold text-gray-800">${item.name}</h3>
-                            <p class="text-sm text-gray-400">₩${item.price.toLocaleString()} x ${item.qty}</p>
-                            <p class="text-pink-500 font-bold mt-1">₩${(item.price * item.qty).toLocaleString()}</p>
+                        <div class="flex-grow min-w-0">
+                            <h3 class="font-bold text-gray-800 truncate">${item.name}</h3>
+                            ${item.shade ? `<span class="inline-block px-2 py-0.5 shade-badge text-[10px] font-bold rounded-md mt-1 mb-1 italic">${item.shade}</span>` : ''}
+                            <div class="flex items-end justify-between mt-1">
+                                <p class="text-xs text-gray-400 font-medium">₩${item.price.toLocaleString()} × ${item.qty}</p>
+                                <p class="text-lg font-black text-pink-500 leading-none">₩${(item.price * item.qty).toLocaleString()}</p>
+                            </div>
                         </div>
-                        <button onclick="deleteItem(${item.id})" class="text-gray-300 hover:text-red-400 p-2"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="deleteItem(${item.id})" class="text-gray-200 hover:text-red-400 transition-colors p-2 text-sm"><i class="fas fa-times-circle"></i></button>
                     </div>
-                `;
-            }).join('');
+                `).join('');
+            }
 
             document.getElementById('total-krw').innerText = items.reduce((sum, i) => sum + (i.price * i.qty), 0).toLocaleString();
         }
